@@ -1,0 +1,43 @@
+<tal:block metal:use-macro="here/templates/macros/page2">
+<tal:block metal:fill-slot="contentPane">
+
+<tal:block 
+    tal:define="tableName string:applicationKPIsList;
+    objects here/applicationKPIs/objectValuesAll;
+    tabletitle string: bbcApplicationKPIs.pt BBC Applications running at ${here/getId};
+    batch python:here.ZenTableManager.getBatch(tableName,objects)">
+<tal:block metal:use-macro="here/zenuimacros/macros/zentable">
+<tal:block metal:fill-slot="zentablecontents">
+
+<!-- BEGIN TABLE CONTENTS -->
+    <tr>
+        <th tal:replace="structure python:here.ZenTableManager.getTableHeader(tableName,'name','Name')"/>
+        <th tal:replace="structure python:here.ZenTableManager.getTableHeader(tableName,'message','Description')"/>
+	<th tal:replace="structure python:here.ZenTableManager.getTableHeader(tableName,'status', 'Status')"/>
+    </tr>
+    <tal:block tal:repeat="gd batch">
+    <tr>
+
+	<td class="tablevalues"> <span tal:content="structure gd/urlLink"/> </td>
+        <td class="tablevalues" tal:content="gd/message"/>	
+        <td class="tablevalues" >
+	  <img border="0" tal:define="status gd/status" tal:attributes="src python:here.getStatusImgSrc(status)" />
+        </td>
+    </tr>
+    </tal:block>
+    <tr>
+        <td colspan="8" class="tableheader" align='center'>
+        <form metal:use-macro="here/zenTableNavigation/macros/navtool"></form>
+        </td>
+    </tr>
+<!-- END TABLE CONTENTS -->
+
+</tal:block>
+</tal:block>
+</tal:block>
+
+<table metal:use-macro="here/applicationKPIs/viewPerformanceDetail/macros/objectperf"/>
+
+</tal:block>
+</tal:block>
+

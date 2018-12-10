@@ -1,0 +1,312 @@
+<tal:block metal:use-macro="here/templates/macros/page2">
+<tal:block metal:fill-slot="contentPane">
+
+<tal:block 
+    tal:define="tableName string:ApplicationToKPIList;
+    objects here/ApplicationToKPI/objectValuesAll;
+    tabletitle string: KPIs for BBC Application: ${here/getId};
+    batch python:here.ZenTableManager.getBatch(tableName,objects)">
+<tal:block metal:use-macro="here/zenuimacros/macros/zentable">
+<tal:block metal:fill-slot="zentablecontents">
+
+<!-- BEGIN TABLE CONTENTS -->
+    <tr>
+        <th tal:replace="structure python:here.ZenTableManager.getTableHeader(tableName,'description','Name')"/>
+	<!-- <th tal:replace="structure python:here.ZenTableManager.getTableHeader(tableName,'threshMinCrit', 'Status')"/> -->
+    </tr>
+    <tal:block tal:repeat="gd batch">
+    <tr>
+        <td class="tablevalues"> <a href="#" tal:attributes="href string: #${gd/kpiName}">
+          <span tal:replace="gd/kpiName"/>
+         </a> </td>
+<!--	<td class="tablevalues">
+           <img border="0"  tal:define="statust gd/status" tal:attributes="src python:here.getStatusImgSrc(statust)" />
+        </td>
+-->
+    </tr>
+    </tal:block>
+    <tr>
+        <td colspan="8" class="tableheader" align='center'>
+        <form metal:use-macro="here/zenTableNavigation/macros/navtool"></form>
+        </td>
+    </tr>
+<!-- END TABLE CONTENTS -->
+
+</tal:block>
+</tal:block>
+</tal:block>
+
+<tal:block
+    tal:define="
+    objects here/ApplicationToKPI/objectValuesAll; ">
+<script type="text/javascript">
+var zgraphs = new Object();
+
+if (!addEventL){
+var addEventL = function(el, etype, handler){
+		if (el.attachEvent) {
+			el.attachEvent('on'+etype,handler);
+		}
+		else {
+			el.addEventListener(etype, handler, false);
+		}
+	}
+}
+if (!hasClass){
+var hasClass = function(el, name){
+        if (el.className && ( el.className === name || el.className.indexOf(name)>0 )){
+			return true;
+		}
+		else {
+			return false;
+		}
+}
+}
+if (!$e){
+	var $e = function(id){ return document.getElementById(id); };
+}
+
+var graph_actions = function(spec) {
+
+	var ga = {
+	load_properties: function(){
+		this.graph_id = this.graph_id || spec.graph_id;
+		var img = $e(this.graph_id);
+                var src = img.src;
+		src.match(/\&drange=(\d*)\&width=(\d*)\&start=end-(\d*)s\&end=now-(\d*)s/g);
+		this.pan_factor = 3;
+		this.zoom_factor = 1.5;
+		this.drange = parseInt(RegExp.$1) || 129600;
+		this.width  = parseInt(RegExp.$2);
+		this.start  = parseInt(RegExp.$3);
+		this.end    = parseInt(RegExp.$4);
+		this.delta  = Math.round( this.drange / this.pan_factor  );	
+	},
+	pan_left:	function(){
+		this.load_properties();
+		this.start = this.start + this.delta;
+		this.end   = this.end+this.delta > 0 ?	this.end + this.delta : 0;
+	},
+	pan_right:	function(){
+		this.load_properties();
+		this.start = this.start - this.delta;
+		this.end   = this.end-this.delta > 0 ? this.end - this.delta : 0;
+	},
+	zoom:		function(ev){
+		this.load_properties();
+		/* then zoom */
+		/*var x = this.getXpos(ev) - 108; //67;
+
+		if ( x<0 || x>this.width ){return}
+		
+		var drange 	=  Math.round(this.drange/this.zoom_factor);
+		this.delta 	= ((this.width/2)-x)*(this.drange/this.width) +
+                			(this.drange-drange)/2;
+		this.end 	= end = Math.round(this.end+this.delta>=0?this.end+this.delta:0);
+		this.drange = drange;*/
+
+		        var x = this.getXpos(ev)-67;
+        		if (x<0||x>this.width){return};
+        		var drange = Math.round(this.drange/this.zoom_factor);
+        		var delta = ((this.width/2)-x)*(this.drange/this.width) +
+                		(this.drange-drange)/2;
+        		var end = Math.round(this.end+delta>=0?this.end+delta:0);
+        		this.drange = drange;
+        		this.start = drange;
+        		this.end = end;
+	
+	},
+	elements_by_class : function(sclass, node, tag){
+		var elements = new Array();
+		if ( node === null )
+			node = document;
+		if ( tag === null )
+			tag = '*';
+		var els = node.getElementsByTagName(tag);
+		var elsLen = els.length;
+		var pattern = new RegExp("(^|\\s)"+sclass+"(\\s|$)");
+		for (i = 0, j = 0; i < elsLen; i++) {
+			if ( pattern.test(els[i].className) ) {
+				elements[j] = els[i];
+				j++;
+			}
+		}
+		return elements;
+	},
+	set_zoom_style: function(action){
+                /* first set zoom mode */
+		var zouts = this.elements_by_class('zout', null, 'div');
+		var zins  = this.elements_by_class('zin', null, 'div');
+		if (action === 'zin'){
+			for (ele in zouts){
+                        	zouts[ele].style.background = 'transparent url(zoomout.gif) center center no-repeat';
+			}
+			for (ele in zins){
+                        	zins[ele].style.background = '#aaa url(zoomin.gif) center center no-repeat';
+			}
+                        if (this.zoom_factor < 1) this.zoom_factor=1/this.zoom_factor;
+                }
+                else if (action === 'zout'){
+			for (ele in zouts){
+                        	zouts[ele].style.background = '#aaa url(zoomout.gif) center center no-repeat'
+                        }
+			for (ele in zins){
+				zins[ele].style.background = 'transparent url(zoomin.gif) center center no-repeat';
+                        }
+			if (this.zoom_factor > 1) this.zoom_factor=1/this.zoom_factor;
+                }
+	},
+	getXpos:	function(ev){
+	        var cursor = {x:0,y:0};
+		var element = this.imgPos();
+		if (ev.pageX || ev.pageY) {
+		    cursor.x = ev.pageX;
+		    cursor.y = ev.pageY;
+		} 
+		else {
+		    var de = document.documentElement;
+		    var b = document.body;
+		    cursor.x = ev.mouse().client.x +
+			(de.scrollLeft||b.scrollLeft)-(de.clientLeft||0);
+		    cursor.y = ev.mouse().client.y +
+			(de.scrollTop||b.scrollTop)-(de.clientTop||0);
+		}
+		return cursor.x - element.x;
+	},
+	imgPos: 	function(){
+		var obj = $e(this.graph_id);
+		var curleft = curtop = 0;
+		if (obj.offsetParent) {
+		    curleft = obj.offsetLeft;
+		    curtop = obj.offsetTop;
+		    while (obj=obj.offsetParent) {
+			curleft += obj.offsetLeft;
+			curtop += obj.offsetTop;
+		    }
+		}
+		var element = {x:curleft,y:curtop};
+		return element;
+	}
+	}
+
+		ga.load_properties();
+		return ga;
+}
+
+var click_handler = function(ev){
+	var myev = ev || window.event;
+	var target = myev.target || myev.srcElement;
+	var value = target.value || target.getAttribute('value') || target.id;
+	if ( value ){
+		var graph_id = value.match(/^Graph_(.*)/g);
+		if ( graph_id && $e(graph_id)){ // clicked a graph control
+			if (target.name === 'left'){
+				zgraphs[graph_id].pan_left();
+			}
+			else if (target.name === 'right' ){
+				zgraphs[graph_id].pan_right();
+			}		
+			else if (hasClass(target, 'zin')){
+				zgraphs[graph_id].set_zoom_style('zin');
+			}
+			else if (hasClass(target, 'zout')){
+                                zgraphs[graph_id].set_zoom_style('zout');
+                        }
+			else if ( target.tagName.toLowerCase() === 'img'){
+				zgraphs[graph_id].zoom(myev, graph_id); // zoom
+			}
+
+			for (id in zgraphs){
+				if ($e(id)){
+					src = $e(id).src.replace(/\&start=end-(\d*)s/g, ('&start=end-' + zgraphs[graph_id].start + 's'));
+					src = $e(id).src.replace(/\&end=now-(\d*)s/g, ('&end=now-' + zgraphs[graph_id].end +'s'));
+					$e(id).src = src;
+				}
+			}
+		} 
+	} 
+	return false;
+}
+
+var checkbox_handler = function(ev){
+        var myev = ev || window.event;
+        var target = myev.target || myev.srcElement;
+	if (target.tagName === 'INPUT' && hasClass(target, 'togglethresholds')){
+		var graph_id = target.getAttribute('value');
+		var device_data = graph_id.split('_-'); //format is device_-appName_-kpiName
+	
+		graph_id = 'Graph_' + device_data[2];
+		if ($e(graph_id)){
+			chk_state = target.checked ? 1 : 0;
+			var src = $e(graph_id).src.replace(/^(.*)&drange/g,'&drange');
+			src = src.replace(/\&thresholds=\d+/g, '&thresholds='+ chk_state);
+			// ajax call here	
+			var d = loadJSONDoc('/zport/getJSONGraph?' + src + '&device='+ device_data[0] + '&bbcapp=' + device_data[1] +  '&kpi=' + device_data[2]  );
+			d.addCallback(function(response){
+				if(response.graph && response.graph_id ){
+					$e(response.graph_id).src = $e(response.graph_id).src.replace(/gopts=.*$/g, 'gopts=' + response.graph);
+				}
+			})
+			
+		}	
+	}
+	return false;
+}
+
+
+window.onload=function(){
+/* attach ev handlers */
+addEventL(window.document, 'click', click_handler);
+addEventL(window.document, 'change', checkbox_handler);
+}
+</script>
+
+    <tal:block tal:repeat="hmm objects">
+    
+	<div class="portlet-header">
+		<div id="devissues_handle" class="tabletitle-container">
+			<div class="tabletitle-left">
+				<div class="tabletitle-right">
+					<div class="tabletitle-center" tal:attributes="id hmm/kpiName"> <span class="nodeag" tal:replace="string:${here/getId} ${hmm/kpiName}"/> 
+
+				<div style="float:right">Show thresholds <input type="checkbox" class="togglethresholds" tal:define="dev python:here.device().getId()" tal:attributes="value string:${dev}_-${here/getId}_-${hmm/kpiName}"/></div>
+</div>
+				</div>
+			</div>
+		</div>
+	</div>
+<div class="portlet-body-outer">
+<div id="usermsgs_body" class="portlet-body yui-dt" >
+<form action="#" onsubmit="return false;">
+<table style="border: 1px solid black">
+<tr>
+<td >
+<button name="left" value="" tal:attributes="value string:Graph_${hmm/kpiName}" type="button" style="border: 1px solid rgb(170, 170, 170); width: 3em; cursor: pointer; height: 191px; float: left;" > < </button>
+
+<img id="KPIGraph"  src="" tal:attributes="src string:${root/absolute_url}/zport/RenderServer/render?gopts=${hmm/getGraphPath};id string:Graph_${hmm/kpiName}" style="float: left; cursor: crosshair;"/>
+
+<button name="right" value="" tal:attributes="value string:Graph_${hmm/kpiName}" style="border: 1px solid rgb(170, 170, 170); width: 3em; cursor: pointer; height: 191px; float: left;"> > </button>
+</td><td>
+<div class="zin" tal:attributes="value string:Graph_${hmm/kpiName}" style="border: 1px solid rgb(170, 170, 170); background: rgb(170, 170, 170) url(zoomin.gif) no-repeat scroll center center; cursor: pointer; width: 3em; text-align: center; vertical-align: middle; -moz-background-clip: -moz-initial; -moz-background-origin: -moz-initial; -moz-background-inline-policy: -moz-initial; height: 50%; min-height: 82px;" valign="middle"></div>
+<div class="zout"  tal:attributes="value string:Graph_${hmm/kpiName}" style="border: 1px solid rgb(170, 170, 170); background: transparent url(zoomout.gif) no-repeat scroll center center; cursor: pointer; width: 3em; text-align: center; height: 50%; -moz-background-clip: -moz-initial; -moz-background-origin: -moz-initial; -moz-background-inline-policy: -moz-initial; min-height: 82px;" valign="middle"></div>
+
+
+<script tal:content="string:
+        zgraphs['Graph_${hmm/kpiName}'] = graph_actions({graph_id: 'Graph_${hmm/kpiName}' });
+       "></script>
+
+</td>
+
+</tr></table>
+</form>
+
+</div>
+</div>
+
+    </tal:block>
+</tal:block>
+
+
+</tal:block>
+</tal:block>
+

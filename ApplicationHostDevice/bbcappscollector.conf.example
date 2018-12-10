@@ -1,0 +1,14 @@
+#PARAMETER      VALUE
+monitor localhost
+hubhost localhost
+logpath /opt/zenoss/log/localhost
+hubpassword zenoss
+hubport 8789
+
+# BBC options
+oid .1.3.6.1.4.1.2333.3.2
+maxModeledApplicationsPerDevice 100
+maxModeledKPIsPerApplication 550
+oidValidatorSeverity 1
+oidTtlExpirySeverity 1
+thresholdsConfigDir /opt/zenoss-dynamic-configs

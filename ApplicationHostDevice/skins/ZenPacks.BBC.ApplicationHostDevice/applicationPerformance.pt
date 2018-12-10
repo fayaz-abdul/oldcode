@@ -1,0 +1,37 @@
+<tal:block metal:use-macro="here/templates/macros/page2">
+<tal:block metal:fill-slot="contentPane">
+
+<tal:block 
+    tal:define="tableName string:ApplicationToKPIList;
+    objects here/ApplicationToKPI/objectValuesAll;
+    tabletitle string: KPIs for BBC Application: ${here/getId};
+    batch python:here.ZenTableManager.getBatch(tableName,objects)">
+<tal:block metal:use-macro="here/zenuimacros/macros/zentable">
+<tal:block metal:fill-slot="zentablecontents">
+
+<!-- BEGIN TABLE CONTENTS -->
+    <tr>
+        <th tal:replace="structure python:here.ZenTableManager.getTableHeader(tableName,'description','Name')"/>
+	    <th tal:replace="structure python:here.ZenTableManager.getTableHeader(tableName,'url', 'RunBook')"/>
+    </tr>
+    <tal:block tal:repeat="gd batch">
+    <tr tal:define="odd repeat/gd/odd"
+        tal:attributes="class python:test(odd, 'odd', 'even')">
+        <td class="tablevalues"> <span tal:replace="gd/kpiName"/> </td>
+        <td class="tablevalues"><a href="" tal:attributes="href gd/url"><span tal:replace="gd/url"/></a></td>
+    </tr>
+    </tal:block>
+    <tr>
+        <td colspan="8" class="tableheader" align='center'>
+        <form metal:use-macro="here/zenTableNavigation/macros/navtool"></form>
+        </td>
+    </tr>
+<!-- END TABLE CONTENTS -->
+
+</tal:block>
+</tal:block>
+</tal:block>
+
+</tal:block>
+</tal:block>
+
